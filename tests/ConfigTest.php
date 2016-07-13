@@ -16,12 +16,10 @@ class ConfigTest extends \PHPUnit_Framework_TestCase
 
 	public function testCreate() {
 		$data = [ 'initial' => 1 ];
-		self::$storage = new \vakata\kvstore\Storage($data);
+		self::$storage = new \vakata\config\Config($data);
 		$this->assertEquals(1, self::$storage->get('initial'));
 		$data['reference'] = 2;
-		$this->assertEquals(2, self::$storage->get('reference'));
-		$this->assertEquals(true, self::$storage->set('reference2', 3));
-		$this->assertEquals(3, $data['reference2']);
+		$this->assertEquals(null, self::$storage->get('reference'));
 	}
 	/**
 	 * @depends testCreate
@@ -31,29 +29,58 @@ class ConfigTest extends \PHPUnit_Framework_TestCase
 		$this->assertEquals('value', self::$storage->get('simple'));
 		$this->assertEquals('overwrite', self::$storage->set('simple', 'overwrite'));
 		$this->assertEquals('overwrite', self::$storage->get('simple'));
-		$this->assertEquals(['nested' => 'value'], self::$storage->set('complex', ['nested' => 'value']));
-		$this->assertEquals(['nested' => 'value'], self::$storage->get('complex'));
-		$this->assertEquals('value', self::$storage->get('complex.nested'));
-		$this->assertEquals(['nested' => ['overwrite' => 'ok']], self::$storage->set('complex', ['nested' => ['overwrite' => 'ok']]));
-		$this->assertEquals('ok', self::$storage->get('complex.nested.overwrite'));
 	}
 	/**
 	 * @depends testSet
 	 */
-	public function testGet() {
-		$this->assertEquals('ok', self::$storage->get('complex/nested/overwrite', null, '/'));
-		$this->assertEquals(null, self::$storage->get('complex.nested.overwrite', null, '/'));
-		$this->assertEquals('default', self::$storage->get('complex.nested.overwrite2', 'default'));
+	public function testFile() {
+		self::$storage->fromFile(__DIR__ . '/test.env');
+		$this->assertEquals('config', self::$storage->get('TEST'));
+		$this->assertEquals(1, self::$storage->get('TESTINT1'));
+		$this->assertEquals('1', self::$storage->get('TESTINT2'));
+		$this->assertEquals(__DIR__ . '/1', self::$storage->get('REPLACE1'));
+		$this->assertEquals(__DIR__ . '/1/2', self::$storage->get('REPLACE2'));
+		$this->assertEquals('${UNDEF}/3', self::$storage->get('REPLACE3'));
+	}
+	public function testDir() {
+		self::$storage->fromDir(__DIR__ . '/test');
+		$this->assertEquals('1', self::$storage->get('VAL1'));
+		$this->assertEquals(2, self::$storage->get('VAL2'));
+		$this->assertEquals(null, self::$storage->get('VAL3'));
+	}
+	public function testDirDeep() {
+		self::$storage->fromDir(__DIR__ . '/test', true);
+		$this->assertEquals('1', self::$storage->get('VAL1'));
+		$this->assertEquals(2, self::$storage->get('VAL2'));
+		$this->assertEquals('3', self::$storage->get('VAL3'));
+	}
+	/**
+	 * @depends testDirDeep
+	 */
+	public function testExport() {
+		self::$storage->export();
+		$this->assertEquals('1', $_SERVER['VAL1']);
+		$this->assertEquals(2, constant('VAL2'));
+		$this->assertEquals('2', $_ENV['VAL2']);
+		$this->assertEquals('config', getenv('TEST'));
+	}
+	/**
+	 * @depends testExport
+	 */
+	public function testExportOverwrite() {
+		$this->assertEquals('1', $_SERVER['VAL1']);
+		self::$storage->set('VAL1', 'overwrite');
+		$this->assertEquals('overwrite', self::$storage->get('VAL1'));
+		self::$storage->export();
+		$this->assertEquals('1', $_SERVER['VAL1']);
+		self::$storage->export(true);
+		$this->assertEquals('overwrite', $_SERVER['VAL1']);
 	}
 	/**
 	 * @depends testSet
 	 */
 	public function testDel() {
-		$this->assertEquals(null, self::$storage->del('complex2'));
-		$this->assertEquals(null, self::$storage->del('complex.nested2.nested2'));
-		$this->assertEquals('ok', self::$storage->del('complex.nested.overwrite'));
-		$this->assertEquals([], self::$storage->get('complex.nested'));
-		$this->assertEquals(['nested'=>[]], self::$storage->del('complex'));
-		$this->assertEquals(null, self::$storage->get('complex'));
+		$this->assertEquals('overwrite', self::$storage->del('simple'));
+		$this->assertEquals(null, self::$storage->get('simple'));
 	}
 }
