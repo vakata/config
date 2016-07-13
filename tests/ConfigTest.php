@@ -38,6 +38,8 @@ class ConfigTest extends \PHPUnit_Framework_TestCase
 		$this->assertEquals('config', self::$storage->get('TEST'));
 		$this->assertEquals(1, self::$storage->get('TESTINT1'));
 		$this->assertEquals('1', self::$storage->get('TESTINT2'));
+		$this->assertEquals(true, self::$storage->get('TESTBOOL1'));
+		$this->assertEquals(false, self::$storage->get('TESTBOOL2'));
 		$this->assertEquals(__DIR__ . '/1', self::$storage->get('REPLACE1'));
 		$this->assertEquals(__DIR__ . '/1/2', self::$storage->get('REPLACE2'));
 		$this->assertEquals('${UNDEF}/3', self::$storage->get('REPLACE3'));
