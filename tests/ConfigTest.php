@@ -33,7 +33,7 @@ class ConfigTest extends \PHPUnit_Framework_TestCase
 	/**
 	 * @depends testSet
 	 */
-	public function testFile() {
+	public function testEnvFile() {
 		self::$storage->fromFile(__DIR__ . '/test.env');
 		$this->assertEquals('config', self::$storage->get('TEST'));
 		$this->assertEquals(1, self::$storage->get('TESTINT1'));
@@ -44,6 +44,43 @@ class ConfigTest extends \PHPUnit_Framework_TestCase
 		$this->assertEquals(__DIR__ . '/1/2', self::$storage->get('REPLACE2'));
 		$this->assertEquals('${UNDEF}/3', self::$storage->get('REPLACE3'));
 	}
+	public function testJsonFile() {
+		$cnf = new \vakata\config\Config();
+		$cnf->fromFile(__DIR__ . '/test.json');
+		$this->assertEquals('config', $cnf->get('TEST'));
+		$this->assertEquals(1, $cnf->get('TESTINT1'));
+		$this->assertEquals('1', $cnf->get('TESTINT2'));
+		$this->assertEquals(true, $cnf->get('TESTBOOL1'));
+		$this->assertEquals(false, $cnf->get('TESTBOOL2'));
+		$this->assertEquals(__DIR__ . '/1', $cnf->get('REPLACE1'));
+		$this->assertEquals(__DIR__ . '/1/2', $cnf->get('REPLACE2'));
+		$this->assertEquals('${UNDEF}/3', $cnf->get('REPLACE3'));
+	}
+	public function testIniFile() {
+		$cnf = new \vakata\config\Config();
+		$cnf->fromFile(__DIR__ . '/test.ini');
+		$this->assertEquals('config', $cnf->get('TEST'));
+		$this->assertEquals(1, $cnf->get('TESTINT1'));
+		$this->assertEquals('1', $cnf->get('TESTINT2'));
+		$this->assertEquals(true, $cnf->get('TESTBOOL1'));
+		$this->assertEquals(false, $cnf->get('TESTBOOL2'));
+		$this->assertEquals(__DIR__ . '/1', $cnf->get('REPLACE1'));
+		$this->assertEquals(__DIR__ . '/1/2', $cnf->get('REPLACE2'));
+		$this->assertEquals('${UNDEF}/3', $cnf->get('REPLACE3'));
+	}
+	public function testYamlFile() {
+		$cnf = new \vakata\config\Config();
+		$cnf->fromFile(__DIR__ . '/test.yaml');
+		$this->assertEquals('config', $cnf->get('TEST'));
+		$this->assertEquals(1, $cnf->get('TESTINT1'));
+		$this->assertEquals('1', $cnf->get('TESTINT2'));
+		$this->assertEquals(true, $cnf->get('TESTBOOL1'));
+		$this->assertEquals(false, $cnf->get('TESTBOOL2'));
+		$this->assertEquals(__DIR__ . '/1', $cnf->get('REPLACE1'));
+		$this->assertEquals(__DIR__ . '/1/2', $cnf->get('REPLACE2'));
+		$this->assertEquals('${UNDEF}/3', $cnf->get('REPLACE3'));
+	}
+	
 	public function testDir() {
 		self::$storage->fromDir(__DIR__ . '/test');
 		$this->assertEquals('1', self::$storage->get('VAL1'));

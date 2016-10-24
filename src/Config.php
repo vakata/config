@@ -2,8 +2,9 @@
 
 namespace vakata\config;
 
-use \vakata\kvstore\StorageInterface;
-use \vakata\kvstore\Storage;
+use vakata\kvstore\StorageInterface;
+use vakata\kvstore\Storage;
+use Symfony\Component\Yaml\Yaml;
 
 class Config implements StorageInterface
 {
@@ -55,12 +56,118 @@ class Config implements StorageInterface
         return $this->storage->del($key, $separator);
     }
     /**
-     * Parse an .env file and import into config object
+     * Parse a supported file and import into config object
      * @method fromFile
      * @param  string $location  the location of the file to parse
      * @return self
      */
     public function fromFile($location)
+    {
+        switch (strtolower(pathinfo($location, PATHINFO_EXTENSION))) {
+            case 'ini':
+                return $this->fromIniFile($location);
+            case 'env':
+                return $this->fromEnvFile($location);
+            case 'json':
+                return $this->fromJsonFile($location);
+            case 'yml':
+            case 'yaml':
+                return $this->fromYamlFile($location);
+            default:
+                break;
+        }
+    }
+    protected function replaceExisting($data, $location = __DIR__) {
+        if (is_array($data)) {
+            return array_map(function ($v) { return $this->replaceExisting($v); }, $data);
+        }
+        if (is_string($data)) {
+            return preg_replace_callback(
+                '(\${([a-zA-Z0-9_]+)})',
+                function ($matches) use ($location) {
+                    if ($matches[1] === '__DIR__') {
+                        return dirname(realpath($location));
+                    }
+                    return $this->get($matches[1], $matches[0]);
+                },
+                $data
+            );
+        }
+        return $data;
+    }
+    /**
+     * Parse an .yaml file and import into config object
+     * @method fromYamlFile
+     * @param  string $location  the location of the file to parse
+     * @return self
+     */
+    public function fromYamlFile($location)
+    {
+        if (function_exists('yaml_parse_file')) {
+            $parsed = yaml_parse_file($location);
+        } else {
+            $parsed = Yaml::parse(file_get_contents($location));
+        }
+        if (!is_array($parsed)) {
+            throw new ConfigException('Incorrect format');
+        }
+        foreach ($parsed as $k => $v) {
+            $this->set($k, $this->replaceExisting($v, $location));
+        }
+        return $this;
+    }
+    /**
+     * Parse an .json file and import into config object
+     * @method fromJsonFile
+     * @param  string $location  the location of the file to parse
+     * @return self
+     */
+    public function fromJsonFile($location)
+    {
+        $parsed = json_decode(file_get_contents($location), true);
+        if (!is_array($parsed)) {
+            throw new ConfigException('Incorrect format');
+        }
+        foreach ($parsed as $k => $v) {
+            $this->set($k, $this->replaceExisting($v, $location));
+        }
+        return $this;
+    }
+    /**
+     * Parse an .ini file and import into config object
+     * @method fromIniFile
+     * @param  string $location  the location of the file to parse
+     * @return self
+     */
+    public function fromIniFile($location, $sections = false)
+    {
+        $parsed = parse_ini_file($location, $sections, INI_SCANNER_RAW);
+        if (!is_array($parsed)) {
+            throw new ConfigException('Incorrect format');
+        }
+        foreach ($parsed as $k => $v) {
+            if (preg_match('(^\d+$)', $v)) {
+                $v = (int)$v;
+            } else if (is_numeric($v)) {
+                $v = (float)$v;
+            } else if ($v === 'true') {
+                $v = true;
+            } else if ($v === 'false') {
+                $v = false;
+            } else {
+                $v = $this->replaceExisting($v, $location);
+            }
+            $this->set($k, $v);
+        }
+        return $this;
+    }
+    /**
+     * Parse an .env file and import into config object
+     * @method fromEnvFile
+     * @param  string $location  the location of the file to parse
+     * @return self
+     */
+    public function fromEnvFile($location)
     {
         foreach (file($location, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) as $k => $v) {
             $v = trim($v, " \r\n\t");
@@ -80,16 +187,7 @@ class Config implements StorageInterface
             if ($v[1][0] === '"' && $v[1][strlen($v[1]) - 1] === '"') {
                 $quoted = true;
                 $v[1] = trim($v[1], '"');
-                $v[1] = preg_replace_callback(
-                    '(\${([a-zA-Z0-9_]+)})',
-                    function ($matches) use ($location) {
-                        if ($matches[1] === '__DIR__') {
-                            return dirname(realpath($location));
-                        }
-                        return $this->get($matches[1], $matches[0]);
-                    },
-                    $v[1]
-                );
+                $v[1] = $this->replaceExisting($v[1], $location);
             }
 
             if (!$quoted) {
@@ -109,7 +207,7 @@ class Config implements StorageInterface
         return $this;
     }
     /**
-     * Parse all .env files in a directory and import into config object
+     * Parse all supported files in a directory and import into config object
      * @method fromDir
      * @param  string $location  the location of the dir to scan & parse
      * @param  bool   $deep      should sub directories be parsed as well, defaults to `false`
@@ -122,7 +220,7 @@ class Config implements StorageInterface
                 if ($item === '.' || $item === '..') {
                     continue;
                 }
-                if (is_file($location . DIRECTORY_SEPARATOR . $item) && strtolower(substr($item, -4)) === '.env') {
+                if (is_file($location . DIRECTORY_SEPARATOR . $item)) {
                     $this->fromFile($location . DIRECTORY_SEPARATOR . $item);
                 }
                 if ($deep && is_dir($location . DIRECTORY_SEPARATOR . $item)) {

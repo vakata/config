@@ -1,0 +1,10 @@
+{
+    "TEST" : "config",
+    "TESTINT1" : 1,
+    "TESTINT2" : "1",
+    "TESTBOOL1" : true,
+    "TESTBOOL2" : false,
+    "REPLACE1" : "${__DIR__}/1",
+    "REPLACE2" : "${REPLACE1}/2",
+    "REPLACE3" : "${UNDEF}/3"
+}
