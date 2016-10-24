@@ -179,7 +179,7 @@ class Config implements StorageInterface
                 continue;
             }
             $v[0] = trim($v[0], " \r\n\t");
-            if (!preg_match('(^[a-zA-Z0-9_]+$)', $v[0])) {
+            if (!preg_match('(^[a-zA-Z0-9_.]+$)', $v[0])) {
                 continue;
             }
             $v[1] = trim($v[1], " \r\n\t");
