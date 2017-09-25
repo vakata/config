@@ -146,6 +146,8 @@ class Config implements StorageInterface
                 $v = true;
             } else if ($v === 'false') {
                 $v = false;
+            } else if ($v === 'null') {
+                $v = null;
             } else {
                 $v = $this->replaceExisting($v, $location);
             }
@@ -189,6 +191,8 @@ class Config implements StorageInterface
                 } else if ($v[1] === 'true') {
                     $v[1] = true;
                 } else if ($v[1] === 'false') {
+                    $v[1] = false;
+                } else if ($v[1] === 'null') {
                     $v[1] = false;
                 }
             }
