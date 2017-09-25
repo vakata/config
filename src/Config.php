@@ -193,7 +193,7 @@ class Config implements StorageInterface
                 } else if ($v[1] === 'false') {
                     $v[1] = false;
                 } else if ($v[1] === 'null') {
-                    $v[1] = false;
+                    $v[1] = null;
                 }
             }
 
