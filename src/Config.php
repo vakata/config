@@ -4,7 +4,6 @@ namespace vakata\config;
 
 use vakata\kvstore\StorageInterface;
 use vakata\kvstore\Storage;
-use Symfony\Component\Yaml\Yaml;
 
 class Config implements StorageInterface
 {
@@ -65,9 +64,6 @@ class Config implements StorageInterface
                 return $this->fromEnvFile($location);
             case 'json':
                 return $this->fromJsonFile($location);
-            case 'yml':
-            case 'yaml':
-                return $this->fromYamlFile($location);
             default:
                 break;
         }
@@ -91,27 +87,7 @@ class Config implements StorageInterface
         return $data;
     }
     /**
-     * Parse an .yaml file and import into config object
-     * @param  string $location  the location of the file to parse
-     * @return self
-     */
-    public function fromYamlFile($location)
-    {
-        if (function_exists('yaml_parse_file')) {
-            $parsed = yaml_parse_file($location);
-        } else {
-            $parsed = Yaml::parse(file_get_contents($location));
-        }
-        if (!is_array($parsed)) {
-            throw new ConfigException('Incorrect format');
-        }
-        foreach ($parsed as $k => $v) {
-            $this->set($k, $this->replaceExisting($v, $location));
-        }
-        return $this;
-    }
-    /**
-     * Parse an .json file and import into config object
+     * Parse a .json file and import into config object
      * @param  string $location  the location of the file to parse
      * @return self
      */
@@ -249,5 +225,14 @@ class Config implements StorageInterface
                 define($k, $v);
             }
         }
+    }
+    /**
+     * Get all config items as an array
+     *
+     * @return array
+     */
+    public function toArray()
+    {
+        return $this->data;
     }
 }

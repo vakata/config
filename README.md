@@ -3,8 +3,8 @@
 [![Latest Version on Packagist][ico-version]][link-packagist]
 [![Software License][ico-license]](LICENSE.md)
 [![Build Status][ico-travis]][link-travis]
-[![Code Climate][ico-cc]][link-cc]
-[![Tests Coverage][ico-cc-coverage]][link-cc]
+[![Scrutinizer Code Quality][ico-code-quality]][link-scrutinizer]
+[![Code Coverage][ico-scrutinizer]][link-scrutinizer]
 
 A PHP config class, which supports parsing .env files.
 
@@ -68,7 +68,7 @@ The MIT License (MIT). Please see [License File](LICENSE.md) for more informatio
 
 [link-packagist]: https://packagist.org/packages/vakata/config
 [link-travis]: https://travis-ci.org/vakata/config
-[link-scrutinizer]: https://scrutinizer-ci.com/g/vakata/config/code-structure
+[link-scrutinizer]: https://scrutinizer-ci.com/g/vakata/config
 [link-code-quality]: https://scrutinizer-ci.com/g/vakata/config
 [link-downloads]: https://packagist.org/packages/vakata/config
 [link-author]: https://github.com/vakata
