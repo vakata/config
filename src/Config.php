@@ -19,8 +19,9 @@ class Config implements StorageInterface
      * @param  array<string,mixed> $defaults    initial values to populate
      */
     public function __construct(array $defaults = []) {
-        $this->data = $defaults;
+        $this->data = [];
         $this->storage = new Storage($this->data);
+        $this->fromArray($defaults);
     }
     /**
      * Get a key from the config storage by using a string locator.
@@ -58,15 +59,15 @@ class Config implements StorageInterface
      * @param string $location
      * @return array<string,mixed>
      */
-    public function parseFile(string $location): array
+    public static function parseFile(string $location): array
     {
         switch (strtolower(pathinfo($location, PATHINFO_EXTENSION))) {
             case 'ini':
-                return $this->parseIniFile($location);
+                return static::parseIniFile($location);
             case 'env':
-                return $this->parseEnvFile($location);
+                return static::parseEnvFile($location);
             case 'json':
-                return $this->parseJsonFile($location);
+                return static::parseJsonFile($location);
             default:
                 throw new ConfigException('Unsupported file format');
         }
@@ -76,28 +77,32 @@ class Config implements StorageInterface
      * @param  string $location  the location of the file to parse
      * @return array<string,mixed>
      */
-    public function parseJsonFile(string $location): array
+    public static function parseJsonFile(string $location): array
     {
         $parsed = json_decode(file_get_contents($location) ?: throw new RuntimeException(), true);
         if (!is_array($parsed)) {
             throw new ConfigException('Incorrect format');
         }
+        $location = dirname(realpath($location) ?: throw new RuntimeException());
         foreach ($parsed as $k => $v) {
-            $parsed[$k] = $this->replaceExisting($v, $location, $parsed);
+            if (is_string($v)) {
+                $parsed[$k] = str_replace('${__DIR__}', $location, $v);
+            }
         }
-        return $parsed;
+        return static::replaceExisting($parsed, $parsed);
     }
     /**
      * Parse an .ini file and import into config object
      * @param  string $location  the location of the file to parse
      * @return array<string,mixed>
      */
-    public function parseIniFile(string $location, bool $sections = false): array
+    public static function parseIniFile(string $location, bool $sections = false): array
     {
         $parsed = parse_ini_file($location, $sections, INI_SCANNER_RAW);
         if (!is_array($parsed)) {
             throw new ConfigException('Incorrect format');
         }
+        $location = dirname(realpath($location) ?: throw new RuntimeException());
         foreach ($parsed as $k => $v) {
             if (preg_match('(^\d+$)', $v)) {
                 $v = (int)$v;
@@ -110,23 +115,21 @@ class Config implements StorageInterface
             } else if ($v === 'null') {
                 $v = null;
             } else {
-                $v = $this->replaceExisting($v, $location);
+                $v = str_replace('${__DIR__}', $location, $v);
             }
             $parsed[$k] = $v;
         }
-        foreach ($parsed as $k => $v) {
-            $parsed[$k] = $this->replaceExisting($v, $location, $parsed);
-        }
-        return $parsed;
+        return static::replaceExisting($parsed, $parsed);
     }
     /**
      * Parse an .env file and import into config object
      * @param  string $location  the location of the file to parse
      * @return array<string,mixed>
      */
-    public function parseEnvFile(string $location): array
+    public static function parseEnvFile(string $location): array
     {
         $parsed = [];
+        $location = dirname(realpath($location) ?: throw new RuntimeException());
         foreach (file($location, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [] as $k => $v) {
             $v = trim($v, " \r\n\t");
             if ($v[0] === '#') {
@@ -145,9 +148,8 @@ class Config implements StorageInterface
             if ($v[1][0] === '"' && $v[1][strlen($v[1]) - 1] === '"') {
                 $quoted = true;
                 $v[1] = trim($v[1], '"');
-                $v[1] = $this->replaceExisting($v[1], $location);
+                $v[1] = str_replace('${__DIR__}', $location, $v[1]);
             }
-
             if (!$quoted) {
                 if (preg_match('(^\d+$)', $v[1])) {
                     $v[1] = (int)$v[1];
@@ -163,10 +165,7 @@ class Config implements StorageInterface
             }
             $parsed[$v[0]] = $v[1];
         }
-        foreach ($parsed as $k => $v) {
-            $parsed[$k] = $this->replaceExisting($v, $location, $parsed);
-        }
-        return $parsed;
+        return static::replaceExisting($parsed, $parsed);
     }
     /**
      * Parse a supported file and import into config object
@@ -175,22 +174,18 @@ class Config implements StorageInterface
      */
     public function fromFile(string $location): self
     {
-        $data = $this->parseFile($location);
-        return $this->fromArray($data);
+        return $this->fromArray(static::parseFile($location));
     }
-    protected function replaceExisting(mixed $data, string $location = __DIR__, array $current = []): mixed
+    protected static function replaceExisting(mixed $data, array $current = []): mixed
     {
         if (is_array($data)) {
-            return array_map(function ($v) { return $this->replaceExisting($v); }, $data);
+            return array_map(function ($v) use ($current) { return static::replaceExisting($v, $current); }, $data);
         }
         if (is_string($data)) {
             return preg_replace_callback(
                 '(\${([a-zA-Z0-9_]+)})',
-                function ($matches) use ($location, $current) {
-                    if ($matches[1] === '__DIR__') {
-                        return dirname(realpath($location) ?: throw new RuntimeException());
-                    }
-                    return $current[$matches[1]] ?? $this->get($matches[1], null) ?? $matches[0];
+                function ($matches) use ($current) {
+                    return $current[$matches[1]] ?? $matches[0];
                 },
                 $data
             );
@@ -204,8 +199,7 @@ class Config implements StorageInterface
      */
     public function fromJsonFile(string $location): self
     {
-        $data = $this->parseJsonFile($location);
-        return $this->fromArray($data);
+        return $this->fromArray($this->parseJsonFile($location));
     }
     /**
      * Parse an .ini file and import into config object
@@ -214,8 +208,7 @@ class Config implements StorageInterface
      */
     public function fromIniFile(string $location, bool $sections = false): self
     {
-        $data = $this->parseIniFile($location, $sections);
-        return $this->fromArray($data);
+        return $this->fromArray($this->parseIniFile($location, $sections));
     }
     /**
      * Parse an .env file and import into config object
@@ -224,8 +217,7 @@ class Config implements StorageInterface
      */
     public function fromEnvFile(string $location): self
     {
-        $data = $this->parseEnvFile($location);
-        return $this->fromArray($data);
+        return $this->fromArray($this->parseEnvFile($location));
     }
     /**
      * Parse all supported files in a directory and import into config object
@@ -292,6 +284,9 @@ class Config implements StorageInterface
     public function fromArray(array $data): self
     {
         foreach ($data as $k => $v) {
+            if (is_string($v)) {
+                $v = static::replaceExisting($v, $this->data);
+            }
             $this->set($k, $v, '');
         }
         return $this;
