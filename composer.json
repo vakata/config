@@ -16,12 +16,8 @@
         }
     ],
     "require": {
-        "php" : ">=7.0",
-        "vakata/kvstore" : ">=1.0.2"
-    },
-    "require-dev": {
-        "phpunit/phpunit" : "4.*",
-        "clean/phpdoc-md": "*"
+        "php" : ">=8.0",
+        "vakata/kvstore" : ">=2.0.0"
     },
     "autoload": {
         "psr-4": {
@@ -32,10 +28,5 @@
         "psr-4": {
             "vakata\\config\\test\\": "tests"
         }
-    },
-    "scripts": {
-        "test": "phpunit",
-        "psr2": "php-cs-fixer fix ./src",
-        "phpdoc": "phpdoc-md"
     }
 }

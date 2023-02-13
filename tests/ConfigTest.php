@@ -1,7 +1,7 @@
 <?php
 namespace vakata\kvstore\test;
 
-class ConfigTest extends \PHPUnit_Framework_TestCase
+class ConfigTest extends \PHPUnit\Framework\TestCase
 {
     protected static $storage = null;
 

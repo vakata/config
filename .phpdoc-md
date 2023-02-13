@@ -1,9 +1,0 @@
-<?php
-return (object)[
-    'rootNamespace' => 'vakata\config',
-    'destDirectory' => 'docs',
-    'format' => 'github',
-    'classes' => [
-        '\\vakata\\config\\Config'
-    ],
-];
