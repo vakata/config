@@ -129,7 +129,7 @@ class Config implements StorageInterface
     public static function parseEnvFile(string $location): array
     {
         $parsed = [];
-        $location = dirname(realpath($location) ?: throw new RuntimeException());
+        $dir = dirname(realpath($location) ?: throw new RuntimeException());
         foreach (file($location, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [] as $k => $v) {
             $v = trim($v, " \r\n\t");
             if ($v[0] === '#') {
@@ -148,7 +148,7 @@ class Config implements StorageInterface
             if ($v[1][0] === '"' && $v[1][strlen($v[1]) - 1] === '"') {
                 $quoted = true;
                 $v[1] = trim($v[1], '"');
-                $v[1] = str_replace('${__DIR__}', $location, $v[1]);
+                $v[1] = str_replace('${__DIR__}', $dir, $v[1]);
             }
             if (!$quoted) {
                 if (preg_match('(^\d+$)', $v[1])) {
