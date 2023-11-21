@@ -291,4 +291,17 @@ class Config implements StorageInterface
         }
         return $this;
     }
+    public function fromEnv(bool $onlyExisting = true): self
+    {
+        foreach ($_ENV as $k => $v) {
+            if ($onlyExisting && !isset($this->data[$k])) {
+                continue;
+            }
+            if (is_string($v)) {
+                $v = static::replaceExisting($v, $this->data);
+            }
+            $this->set($k, $v, '');
+        }
+        return $this;
+    }
 }
