@@ -13,6 +13,7 @@ class Config implements StorageInterface
      */
     protected array $data;
     protected Storage $storage;
+    protected bool $locked = false;
 
     /**
      * creates a config object
@@ -34,6 +35,38 @@ class Config implements StorageInterface
     {
         return $this->storage->get($key, $default, $separator);
     }
+    public function getString(string $key, string $default = '', string $separator = ''): string
+    {
+        $tmp = $this->get($key, null, $separator);
+        if ($tmp === null) {
+            $tmp = $default;
+        }
+        return (string)$tmp;
+    }
+    public function getInt(string $key, int $default = 0, string $separator = ''): int
+    {
+        $tmp = $this->get($key, null, $separator);
+        if ($tmp === null) {
+            $tmp = $default;
+        }
+        return (int)$tmp;
+    }
+    public function getFloat(string $key, float $default = 0, string $separator = ''): float
+    {
+        $tmp = $this->get($key, null, $separator);
+        if ($tmp === null) {
+            $tmp = $default;
+        }
+        return (float)$tmp;
+    }
+    public function getBool(string $key, bool $default = false, string $separator = ''): bool
+    {
+        $tmp = $this->get($key, null, $separator);
+        if ($tmp === null) {
+            $tmp = $default;
+        }
+        return (bool)$tmp;
+    }
     /**
      * Set an element in the config storage to a specified value. Deep arrays will not work when exporting!
      * @param  string $key       the element to set (can be a deeply nested element of the data array)
@@ -43,6 +76,9 @@ class Config implements StorageInterface
      */
     public function set(string $key, mixed $value, string $separator = ''): mixed
     {
+        if ($this->locked) {
+            throw new ConfigException('Locked');
+        }
         return $this->storage->set($key, $value, $separator);
     }
     /**
@@ -53,7 +89,20 @@ class Config implements StorageInterface
      */
     public function del(string $key, string $separator = ''): mixed
     {
+        if ($this->locked) {
+            throw new ConfigException('Locked');
+        }
         return $this->storage->del($key, $separator);
+    }
+    public function lock(): self
+    {
+        $this->locked = true;
+        return $this;
+    }
+    public function unlock(): self
+    {
+        $this->locked = false;
+        return $this;
     }
     /**
      * @param string $location
@@ -227,6 +276,9 @@ class Config implements StorageInterface
      */
     public function fromDir(string $location, bool $deep = false): self
     {
+        if ($this->locked) {
+            throw new ConfigException('Locked');
+        }
         if (is_dir($location)) {
             foreach (scandir($location) ?: [] as $item) {
                 if ($item === '.' || $item === '..') {
@@ -283,6 +335,9 @@ class Config implements StorageInterface
      */
     public function fromArray(array $data): self
     {
+        if ($this->locked) {
+            throw new ConfigException('Locked');
+        }
         foreach ($data as $k => $v) {
             if (is_string($v)) {
                 $v = static::replaceExisting($v, $this->data);
@@ -293,6 +348,9 @@ class Config implements StorageInterface
     }
     public function fromEnv(bool $onlyExisting = true): self
     {
+        if ($this->locked) {
+            throw new ConfigException('Locked');
+        }
         foreach ($_ENV as $k => $v) {
             if ($onlyExisting && !isset($this->data[$k])) {
                 continue;

@@ -1,5 +1,5 @@
 <?php
-namespace vakata\kvstore\test;
+namespace vakata\config\test;
 
 class ConfigTest extends \PHPUnit\Framework\TestCase
 {
@@ -111,5 +111,38 @@ class ConfigTest extends \PHPUnit\Framework\TestCase
     {
         $this->assertEquals('overwrite', self::$storage->del('simple'));
         $this->assertEquals(null, self::$storage->get('simple'));
+    }
+
+    public function testTypes()
+    {
+        self::$storage->fromDir(__DIR__ . '/test');
+        $this->assertEquals('1', self::$storage->get('VAL1'));
+        $this->assertEquals('1', self::$storage->getString('VAL1'));
+        $this->assertEquals(1, self::$storage->getInt('VAL1'));
+        $this->assertEquals(2, self::$storage->get('VAL2'));
+        $this->assertEquals('2', self::$storage->getString('VAL2'));
+        $this->assertEquals(2, self::$storage->getInt('VAL2'));
+        self::$storage->del('VAL3');
+        $this->assertEquals(null, self::$storage->get('VAL3'));
+        $this->assertEquals('', self::$storage->getString('VAL3'));
+        $this->assertEquals(0, self::$storage->getInt('VAL3'));
+    }
+
+
+    public function testLock()
+    {
+        self::$storage->fromDir(__DIR__ . '/test');
+        self::$storage->lock();
+        $this->expectException(\vakata\config\ConfigException::class);
+        self::$storage->del('VAL3');
+        $this->assertEquals(3, self::$storage->get('VAL3'));
+    }
+    public function testUnlock()
+    {
+        self::$storage->unlock();
+        self::$storage->fromDir(__DIR__ . '/test');
+        $this->assertEquals(2, self::$storage->get('VAL2'));
+        self::$storage->del('VAL2');
+        $this->assertEquals(null, self::$storage->get('VAL2'));
     }
 }
