@@ -355,6 +355,24 @@ class Config implements StorageInterface
             if ($onlyExisting && !isset($this->data[$k])) {
                 continue;
             }
+            $quoted = false;
+            if (strlen($v) && $v[0] === '"' && $v[strlen($v) - 1] === '"') {
+                $quoted = true;
+                $v = trim($v, '"');
+            }
+            if (!$quoted) {
+                if (preg_match('(^\d+$)', $v)) {
+                    $v = (int)$v;
+                } else if (is_numeric($v)) {
+                    $v = (float)$v;
+                } else if ($v === 'true') {
+                    $v = true;
+                } else if ($v === 'false') {
+                    $v = false;
+                } else if ($v === 'null') {
+                    $v = null;
+                }
+            }
             if (is_string($v)) {
                 $v = static::replaceExisting($v, $this->data);
             }
